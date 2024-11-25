@@ -5,6 +5,8 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "proc.h"
+#include <stdint.h>
 
 /*
  * the kernel's page table.
@@ -448,4 +450,59 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+int mprotect(void *addr, int len) {
+    struct proc *p = myproc();  // Obtiene el proceso actual
+
+    // Alineación de la dirección con el tamaño de la página
+    uintptr_t start = (uintptr_t) addr;
+    uintptr_t end = start + len;
+
+    // Verificar que la dirección esté alineada y que la longitud sea válida
+    if (start % PGSIZE != 0 || len <= 0 || end > p->sz) {
+        return -1;  // Dirección no alineada o longitud inválida
+    }
+
+    // Iterar sobre las páginas dentro del rango
+    for (uintptr_t a = start; a < end; a += PGSIZE) {
+        pte_t *pte = walk(p->pagetable, a, 0);  // Obtener la entrada de la tabla de páginas
+        if (pte == 0 || (*pte & PTE_V) == 0) {
+            return -1;  // Dirección fuera del espacio válido
+        }
+        *pte &= ~PTE_W;  // Deshabilitar el bit de escritura (marcar como solo lectura)
+    }
+
+    // Invalidar la TLB para las páginas modificadas
+    sfence_vma();
+    
+    return 0;
+}
+
+
+int munprotect(void *addr, int len) {
+    struct proc *p = myproc();  // Obtiene el proceso actual
+
+    // Alineación de la dirección con el tamaño de la página
+    uintptr_t start = (uintptr_t) addr;
+    uintptr_t end = start + len;
+
+    // Verificar que la dirección esté alineada y que la longitud sea válida
+    if (start % PGSIZE != 0 || len <= 0 || end > p->sz) {
+        return -1;  // Dirección no alineada o longitud inválida
+    }
+
+    // Iterar sobre las páginas dentro del rango
+    for (uintptr_t a = start; a < end; a += PGSIZE) {
+        pte_t *pte = walk(p->pagetable, a, 0);  // Obtener la entrada de la tabla de páginas
+        if (pte == 0 || (*pte & PTE_V) == 0) {
+            return -1;  // Dirección fuera del espacio válido
+        }
+        *pte |= PTE_W;  // Habilitar el bit de escritura (marcar como lectura/escritura)
+    }
+
+    // Invalidar la TLB para las páginas modificadas
+    sfence_vma();
+    
+    return 0;
 }

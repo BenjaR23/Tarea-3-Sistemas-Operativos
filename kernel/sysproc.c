@@ -91,3 +91,31 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_mprotect(void) {
+    struct proc *p = myproc();
+    uint64 addr = p->trapframe->a0; // Primer argumento
+    int len = p->trapframe->a1;     // Segundo argumento
+
+    // Validación de los parámetros
+    if (addr == 0 || len <= 0) {
+        return -1; // Error si los argumentos no son válidos
+    }
+
+    // Llama a la función mprotect con la conversión de uint64 a void *
+    return mprotect((void *) addr, len);
+}
+
+uint64 sys_munprotect(void) {
+    struct proc *p = myproc();
+    uint64 addr = p->trapframe->a0; // Primer argumento
+    int len = p->trapframe->a1;     // Segundo argumento
+
+    // Validación de los parámetros
+    if (addr == 0 || len <= 0) {
+        return -1; // Error si los argumentos no son válidos
+    }
+
+    // Llama a la función munprotect con la conversión de uint64 a void *
+    return munprotect((void *) addr, len);
+}

@@ -187,3 +187,9 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// Declaración de mprotect
+int mprotect(void *addr, int len);
+
+// Declaración de munprotect
+int munprotect(void *addr, int len);
